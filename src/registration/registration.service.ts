@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TeacherStudent } from './teacher-student.entity';
 import { Repository } from 'typeorm';
-import { User } from 'src/user/user.entity';
+import { User } from '../user/user.entity';
 
 interface CommonStudentRaw {
   email: string;
