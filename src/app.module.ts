@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import dotenv from 'dotenv';
 import { User } from './user/user.entity';
 import { UserModule } from './user/user.module';
+import { RegistrationModule } from './registration/registration.module';
+import { TeacherStudent } from './registration/teacher-student.entity';
 dotenv.config();
 
 @Module({
@@ -15,11 +17,12 @@ dotenv.config();
       port: parseInt(process.env.DB_PORT as string, 10),
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      entities: [User],
+      entities: [User, TeacherStudent],
       synchronize: true,
       database: process.env.DB_NAME,
     }),
     UserModule,
+    RegistrationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
