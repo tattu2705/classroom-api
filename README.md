@@ -6,10 +6,6 @@ This repository contains a NestJS API for managing teachers, students, and notif
 
 ## Hosted API
 
-(Insert your deployed URL here)
-
----
-
 ## Features
 
 ### 1. Register Students to a Teacher
