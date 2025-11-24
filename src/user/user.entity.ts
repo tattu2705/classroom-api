@@ -12,6 +12,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: ['teacher', 'student'],
+    default: 'student',
   })
   role: string;
 

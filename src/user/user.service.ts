@@ -17,7 +17,14 @@ export class UserService {
     return this.userRepository.findOneBy({ id });
   }
 
-  create(user: Partial<User>): Promise<User> {
+  async create(user: Partial<User>): Promise<User | { message: string }> {
+    const email = user.email?.toLowerCase();
+    const exist = await this.userRepository.findOneBy({ email });
+    if (exist) {
+      return {
+        message: `User with email ${email} already exists`,
+      };
+    }
     const newUser = this.userRepository.create(user);
     return this.userRepository.save(newUser);
   }
