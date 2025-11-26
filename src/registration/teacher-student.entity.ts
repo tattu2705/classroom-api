@@ -4,16 +4,16 @@ import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 @Entity('teacher_student')
 export class TeacherStudent {
   @PrimaryColumn()
-  teacher_id: number;
+  teacherId: number;
 
   @PrimaryColumn()
-  student_id: number;
+  studentId: number;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'teacher_id' })
+  @JoinColumn({ name: 'teacherId' })
   teacher: User;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'student_id' })
+  @JoinColumn({ name: 'studentId' })
   student: User;
 }

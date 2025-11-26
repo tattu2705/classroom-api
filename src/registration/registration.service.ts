@@ -18,29 +18,28 @@ export class RegistrationService {
   ) {}
 
   async register(
-    teacher_email: string,
-    student_emails: string[],
-  ): Promise<{ success: boolean; message: string }> {
+    teacherEmail: string,
+    studentEmails: string[],
+  ): Promise<{ message: string }> {
     const teacher = await this.userRepository.findOne({
-      where: { email: teacher_email, role: 'teacher' },
+      where: { email: teacherEmail, role: 'teacher' },
     });
 
     if (!teacher) {
-      return {
-        success: false,
-        message: `Teacher with email ${teacher_email} not found`,
-      };
+      throw new NotFoundException(
+        `Teacher with email ${teacherEmail} not found`,
+      );
     }
 
     const students: User[] = [];
 
-    for (const student_email of student_emails) {
+    for (const studentEmail of studentEmails) {
       const student = await this.userRepository.findOne({
-        where: { email: student_email, role: 'student' },
+        where: { email: studentEmail, role: 'student' },
       });
       if (!student) {
         throw new NotFoundException(
-          `Student with email ${student_email} not found`,
+          `Student with email ${studentEmail} not found`,
         );
       }
       students.push(student);
@@ -48,37 +47,32 @@ export class RegistrationService {
 
     for (const student of students) {
       const exist = await this.registrationRepository.findOne({
-        where: { teacher_id: teacher.id, student_id: student.id },
+        where: { teacherId: teacher.id, studentId: student.id },
       });
 
       if (!exist) {
         await this.registrationRepository.save({
-          teacher_id: teacher.id,
-          student_id: student.id,
+          teacherId: teacher.id,
+          studentId: student.id,
         });
       } else {
-        return {
-          success: false,
-          message: `Student with email ${student.email} is already registered under teacher with email ${teacher_email}`,
-        };
+        throw new NotFoundException(
+          `Student with email ${student.email} is already registered under teacher with email ${teacherEmail}`,
+        );
       }
     }
     return {
-      success: true,
       message: 'Registration successful',
     };
   }
 
-  async getCommonStudentsByTeachers(teacher_email: string[]) {
+  async getCommonStudentsByTeachers(teacherEmails: string[]) {
     const teachers = await this.userRepository.find({
-      where: teacher_email.map((email) => ({ email, role: 'teacher' })),
+      where: teacherEmails.map((email) => ({ email, role: 'teacher' })),
     });
 
     if (!teachers.length) {
-      return {
-        success: false,
-        message: `Teachers not found`,
-      };
+      throw new NotFoundException(`Teacher not found`);
     }
 
     const teacherIds = teachers.map((teacher) => teacher.id);
@@ -86,10 +80,10 @@ export class RegistrationService {
     const result: CommonStudentRaw[] = await this.registrationRepository
       .createQueryBuilder('ts')
       .select('u.email', 'email')
-      .innerJoin(User, 'u', 'ts.student_id = u.id')
-      .where('ts.teacher_id IN (:...teacherIds)', { teacherIds })
+      .innerJoin(User, 'u', 'ts.studentId = u.id')
+      .where('ts.teacherId IN (:...teacherIds)', { teacherIds })
       .groupBy('u.email')
-      .having('COUNT(DISTINCT ts.teacher_id) = :teacherCount', {
+      .having('COUNT(DISTINCT ts.teacherId) = :teacherCount', {
         teacherCount: teacherIds.length,
       })
       .getRawMany();
@@ -98,45 +92,43 @@ export class RegistrationService {
     };
   }
 
-  async suspendStudent(student_email: string) {
+  async suspendStudent(studentEmail: string) {
     const student = await this.userRepository.findOne({
-      where: { email: student_email, role: 'student' },
+      where: { email: studentEmail, role: 'student' },
     });
 
     if (!student) {
-      return {
-        success: false,
-        message: `Student with email ${student_email} not found`,
-      };
+      throw new NotFoundException(
+        `Student with email ${studentEmail} not found`,
+      );
     }
 
     student.status = 'suspended';
     await this.userRepository.save(student);
 
     return {
-      success: true,
-      message: `Student with email ${student_email} has been suspended`,
+      message: `Student with email ${studentEmail} has been suspended`,
     };
   }
 
   async retrieveNotificationRecipients(
-    teacher_email: string,
+    teacherEmail: string,
     notification: string,
   ) {
     const teacher = await this.userRepository.findOne({
-      where: { email: teacher_email, role: 'teacher' },
+      where: { email: teacherEmail, role: 'teacher' },
     });
 
     if (!teacher) {
-      return {
-        message: `Teacher with email ${teacher_email} not found`,
-      };
+      throw new NotFoundException(
+        `Teacher with email ${teacherEmail} not found`,
+      );
     }
 
     const registeredStudents = await this.registrationRepository
       .createQueryBuilder('ts')
       .innerJoinAndSelect('ts.student', 'student')
-      .where('ts.teacher_id = :teacherId', { teacherId: teacher.id })
+      .where('ts.teacherId = :teacherId', { teacherId: teacher.id })
       .andWhere('student.status = :status', { status: 'active' })
       .getMany();
 

@@ -21,9 +21,7 @@ export class UserService {
     const email = user.email?.toLowerCase();
     const exist = await this.userRepository.findOneBy({ email });
     if (exist) {
-      return {
-        message: `User with email ${email} already exists`,
-      };
+      throw new Error('User with this email already exists');
     }
     const newUser = this.userRepository.create(user);
     return this.userRepository.save(newUser);
