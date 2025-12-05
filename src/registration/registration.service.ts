@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TeacherStudent } from './teacher-student.entity';
 import { Repository } from 'typeorm';
 import { User } from '../user/user.entity';
+import { KeyGenerator } from 'src/common/cache/key-generator.util';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ERROR_MESSAGES } from 'src/common/constants/error.constant';
 
 interface CommonStudentRaw {
   email: string;
@@ -15,6 +18,9 @@ export class RegistrationService {
 
     @InjectRepository(User)
     private userRepository: Repository<User>,
+
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
   ) {}
 
   async register(
@@ -27,7 +33,7 @@ export class RegistrationService {
 
     if (!teacher) {
       throw new NotFoundException(
-        `Teacher with email ${teacherEmail} not found`,
+        ERROR_MESSAGES.TEACHER_NOT_FOUND(teacherEmail),
       );
     }
 
@@ -39,7 +45,7 @@ export class RegistrationService {
       });
       if (!student) {
         throw new NotFoundException(
-          `Student with email ${studentEmail} not found`,
+          ERROR_MESSAGES.STUDENT_NOT_FOUND(studentEmail),
         );
       }
       students.push(student);
@@ -57,7 +63,10 @@ export class RegistrationService {
         });
       } else {
         throw new NotFoundException(
-          `Student with email ${student.email} is already registered under teacher with email ${teacherEmail}`,
+          ERROR_MESSAGES.STUDENT_ALREADY_REGISTERED(
+            student.email,
+            teacher.email,
+          ),
         );
       }
     }
@@ -67,12 +76,16 @@ export class RegistrationService {
   }
 
   async getCommonStudentsByTeachers(teacherEmails: string[]) {
+    const key = KeyGenerator.custom('commonStudents', ...teacherEmails);
+    const cached = await this.cacheManager.get<{ students: string[] }>(key);
+
+    if (cached) return { students: cached };
     const teachers = await this.userRepository.find({
       where: teacherEmails.map((email) => ({ email, role: 'teacher' })),
     });
 
     if (!teachers.length) {
-      throw new NotFoundException(`Teacher not found`);
+      throw new NotFoundException(ERROR_MESSAGES.TEACHER_GENERIC_NOT_FOUND);
     }
 
     const teacherIds = teachers.map((teacher) => teacher.id);
@@ -87,8 +100,12 @@ export class RegistrationService {
         teacherCount: teacherIds.length,
       })
       .getRawMany();
+
+    const emails = result.map((r) => r.email);
+
+    await this.cacheManager.set(key, emails, 300);
     return {
-      students: result.map((r) => r.email),
+      students: emails,
     };
   }
 
@@ -99,7 +116,7 @@ export class RegistrationService {
 
     if (!student) {
       throw new NotFoundException(
-        `Student with email ${studentEmail} not found`,
+        ERROR_MESSAGES.STUDENT_NOT_FOUND(studentEmail),
       );
     }
 
@@ -115,13 +132,20 @@ export class RegistrationService {
     teacherEmail: string,
     notification: string,
   ) {
+    const key = KeyGenerator.custom(
+      'notificationRecipients',
+      teacherEmail,
+      notification,
+    );
+    const cached = await this.cacheManager.get<{ receipients: string[] }>(key);
+    if (cached) return cached;
     const teacher = await this.userRepository.findOne({
       where: { email: teacherEmail, role: 'teacher' },
     });
 
     if (!teacher) {
       throw new NotFoundException(
-        `Teacher with email ${teacherEmail} not found`,
+        ERROR_MESSAGES.TEACHER_NOT_FOUND(teacherEmail),
       );
     }
 
@@ -155,6 +179,8 @@ export class RegistrationService {
         receipients.push(student.email);
       }
     }
+
+    await this.cacheManager.set(key, { receipients }, 300);
 
     return {
       receipients,

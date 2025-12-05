@@ -7,11 +7,13 @@ import { User } from './user/user.entity';
 import { UserModule } from './user/user.module';
 import { RegistrationModule } from './registration/registration.module';
 import { TeacherStudent } from './registration/teacher-student.entity';
+import { CacheModule } from '@nestjs/cache-manager';
 dotenv.config();
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
+      // eslint-disable-next-line
       type: process.env.DB_TYPE as any,
       host: process.env.DB_HOST,
       port: parseInt(process.env.DB_PORT as string, 10),
@@ -23,6 +25,7 @@ dotenv.config();
     }),
     UserModule,
     RegistrationModule,
+    CacheModule.register({ isGlobal: true, ttl: 5000 }),
   ],
   controllers: [AppController],
   providers: [AppService],
