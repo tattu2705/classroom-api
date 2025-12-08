@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import dotenv from 'dotenv';
 import { User } from './user/user.entity';
@@ -27,7 +25,5 @@ dotenv.config();
     RegistrationModule,
     CacheModule.register({ isGlobal: true, ttl: 5000 }),
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
