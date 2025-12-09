@@ -89,6 +89,13 @@ export class StudentService {
       );
     }
 
+    if (student.isSuspended) {
+      throw new HttpException(
+        `Student with email ${email} is already suspended`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     student.isSuspended = true;
 
     const saved = await this.studentRepository.save(student);

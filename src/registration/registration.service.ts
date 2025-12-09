@@ -1,23 +1,34 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TeacherStudent } from './teacher-student.entity';
 import { Repository } from 'typeorm';
-import { User } from '../user/user.entity';
-import { KeyGenerator } from 'src/common/cache/key-generator.util';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { KeyGenerator } from 'src/common/cache/key-generator.util';
 import { ERROR_MESSAGES } from 'src/common/constants/error.constant';
-
+import { StudentService } from 'src/student/student.service';
+import { TeacherService } from 'src/teacher/teacher.service';
+import { Teacher } from 'src/teacher/teacher.entity';
+import { LIB_CONSTANT } from 'src/common/constants/lib.constant';
 interface CommonStudentRaw {
   email: string;
 }
+
+const TTL = LIB_CONSTANT.TTL;
+
 @Injectable()
 export class RegistrationService {
   constructor(
     @InjectRepository(TeacherStudent)
     private registrationRepository: Repository<TeacherStudent>,
 
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly studentService: StudentService,
+    private readonly teacherService: TeacherService,
 
     @Inject(CACHE_MANAGER)
     private cacheManager: Cache,
@@ -27,104 +38,94 @@ export class RegistrationService {
     teacherEmail: string,
     studentEmails: string[],
   ): Promise<{ message: string }> {
-    const teacher = await this.userRepository.findOne({
-      where: { email: teacherEmail, role: 'teacher' },
-    });
-
+    const teacher = await this.teacherService.findByEmail(teacherEmail);
     if (!teacher) {
-      throw new NotFoundException(
+      throw new HttpException(
         ERROR_MESSAGES.TEACHER_NOT_FOUND(teacherEmail),
+        HttpStatus.NOT_FOUND,
       );
     }
 
-    const students: User[] = [];
+    for (const email of studentEmails) {
+      const student = await this.studentService.createIfNotExists(email);
 
-    for (const studentEmail of studentEmails) {
-      const student = await this.userRepository.findOne({
-        where: { email: studentEmail, role: 'student' },
-      });
-      if (!student) {
-        throw new NotFoundException(
-          ERROR_MESSAGES.STUDENT_NOT_FOUND(studentEmail),
-        );
-      }
-      students.push(student);
-    }
-
-    for (const student of students) {
       const exist = await this.registrationRepository.findOne({
-        where: { teacherId: teacher.id, studentId: student.id },
-      });
-
-      if (!exist) {
-        await this.registrationRepository.save({
+        where: {
           teacherId: teacher.id,
           studentId: student.id,
-        });
-      } else {
-        throw new NotFoundException(
-          ERROR_MESSAGES.STUDENT_ALREADY_REGISTERED(
-            student.email,
-            teacher.email,
-          ),
+        },
+      });
+
+      if (exist) {
+        throw new HttpException(
+          ERROR_MESSAGES.STUDENT_ALREADY_REGISTERED(email, teacherEmail),
+          HttpStatus.BAD_REQUEST,
         );
       }
+
+      await this.registrationRepository.save({
+        teacherId: teacher.id,
+        studentId: student.id,
+      });
     }
-    return {
-      message: 'Registration successful',
-    };
+
+    await this.cacheManager.del(
+      KeyGenerator.custom('registrations', teacherEmail),
+    );
+
+    return { message: 'Registration successful' };
   }
 
   async getCommonStudentsByTeachers(teacherEmails: string[]) {
-    const key = KeyGenerator.custom('commonStudents', ...teacherEmails);
-    const cached = await this.cacheManager.get<{ students: string[] }>(key);
-
+    const cacheKey = KeyGenerator.custom('commonStudents', ...teacherEmails);
+    const cached = await this.cacheManager.get(cacheKey);
     if (cached) return { students: cached };
-    const teachers = await this.userRepository.find({
-      where: teacherEmails.map((email) => ({ email, role: 'teacher' })),
-    });
 
-    if (!teachers.length) {
-      throw new NotFoundException(ERROR_MESSAGES.TEACHER_GENERIC_NOT_FOUND);
+    const teachers = await Promise.all(
+      teacherEmails.map((email) => this.teacherService.findByEmail(email)),
+    );
+
+    if (teachers.some((t) => !t)) {
+      throw new HttpException(
+        ERROR_MESSAGES.TEACHER_GENERIC_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
-    const teacherIds = teachers.map((teacher) => teacher.id);
+    const teacherIds = teachers.map((t: Teacher) => t.id);
 
     const result: CommonStudentRaw[] = await this.registrationRepository
       .createQueryBuilder('ts')
-      .select('u.email', 'email')
-      .innerJoin(User, 'u', 'ts.studentId = u.id')
+      .select('student.email', 'email')
+      .innerJoin('ts.student', 'student')
       .where('ts.teacherId IN (:...teacherIds)', { teacherIds })
-      .groupBy('u.email')
-      .having('COUNT(DISTINCT ts.teacherId) = :teacherCount', {
-        teacherCount: teacherIds.length,
+      .groupBy('student.email')
+      .having('COUNT(DISTINCT ts.teacherId) = :count', {
+        count: teacherIds.length,
       })
       .getRawMany();
 
     const emails = result.map((r) => r.email);
 
-    await this.cacheManager.set(key, emails, 300);
-    return {
-      students: emails,
-    };
+    await this.cacheManager.set(cacheKey, emails, TTL);
+
+    return { students: emails };
   }
 
   async suspendStudent(studentEmail: string) {
-    const student = await this.userRepository.findOne({
-      where: { email: studentEmail, role: 'student' },
-    });
+    const student = await this.studentService.findByEmail(studentEmail);
 
     if (!student) {
-      throw new NotFoundException(
+      throw new HttpException(
         ERROR_MESSAGES.STUDENT_NOT_FOUND(studentEmail),
+        HttpStatus.NOT_FOUND,
       );
     }
 
-    student.status = 'suspended';
-    await this.userRepository.save(student);
+    await this.studentService.suspend(studentEmail);
 
     return {
-      message: `Student with email ${studentEmail} has been suspended`,
+      message: `Student ${studentEmail} has been suspended`,
     };
   }
 
@@ -132,58 +133,49 @@ export class RegistrationService {
     teacherEmail: string,
     notification: string,
   ) {
-    const key = KeyGenerator.custom(
+    const cacheKey = KeyGenerator.custom(
       'notificationRecipients',
       teacherEmail,
       notification,
     );
-    const cached = await this.cacheManager.get<{ receipients: string[] }>(key);
-    if (cached) return cached;
-    const teacher = await this.userRepository.findOne({
-      where: { email: teacherEmail, role: 'teacher' },
-    });
 
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
+    const teacher = await this.teacherService.findByEmail(teacherEmail);
     if (!teacher) {
       throw new NotFoundException(
         ERROR_MESSAGES.TEACHER_NOT_FOUND(teacherEmail),
       );
     }
 
-    const registeredStudents = await this.registrationRepository
+    const registered = await this.registrationRepository
       .createQueryBuilder('ts')
-      .innerJoinAndSelect('ts.student', 'student')
+      .innerJoin('ts.student', 'student')
       .where('ts.teacherId = :teacherId', { teacherId: teacher.id })
-      .andWhere('student.status = :status', { status: 'active' })
+      .andWhere('student.isSuspended = false')
       .getMany();
 
-    const registeredEmails = registeredStudents.map((rs) => rs?.student?.email);
+    const registeredEmails = registered.map((r) => r.student.email);
 
-    let mentionStudents: string[] = [];
-
-    if (notification.includes('@')) {
-      mentionStudents = notification.match(/@([\w.-]+@[\w.-]+\.\w+)/g) || [];
-    }
-
-    const mentionEmails = mentionStudents.map((mention: string) =>
-      mention.slice(1).toLowerCase(),
+    const mentionMatches = notification.match(/@([\w.-]+@[\w.-]+\.\w+)/g) || [];
+    const mentionEmails = mentionMatches.map((m: string) =>
+      m.slice(1).toLowerCase(),
     );
 
-    const receipients: string[] = [];
-    receipients.push(...registeredEmails);
+    const recipients = [...registeredEmails];
 
     for (const email of mentionEmails) {
-      const student = await this.userRepository.findOne({
-        where: { email, role: 'student', status: 'active' },
-      });
-      if (student && !receipients.includes(student.email)) {
-        receipients.push(student.email);
+      const student = await this.studentService.findByEmail(email);
+      if (student && !student.isSuspended) {
+        if (!recipients.includes(student.email)) {
+          recipients.push(student.email);
+        }
       }
     }
 
-    await this.cacheManager.set(key, { receipients }, 300);
+    await this.cacheManager.set(cacheKey, { recipients }, TTL);
 
-    return {
-      receipients,
-    };
+    return { recipients };
   }
 }

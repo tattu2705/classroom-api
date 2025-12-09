@@ -1,5 +1,6 @@
-import { User } from '../user/user.entity';
 import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Student } from 'src/student/student.entity';
+import { Teacher } from 'src/teacher/teacher.entity';
 
 @Entity('teacher_student')
 export class TeacherStudent {
@@ -9,11 +10,11 @@ export class TeacherStudent {
   @PrimaryColumn()
   studentId: number;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => Teacher, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teacherId' })
-  teacher: User;
+  teacher: Teacher;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => Student, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'studentId' })
-  student: User;
+  student: Student;
 }

@@ -2,12 +2,17 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import dotenv from 'dotenv';
 import { User } from './user/user.entity';
-import { UserModule } from './user/user.module';
 import { RegistrationModule } from './registration/registration.module';
 import { TeacherStudent } from './registration/teacher-student.entity';
 import { CacheModule } from '@nestjs/cache-manager';
+import { Student } from './student/student.entity';
+import { Teacher } from './teacher/teacher.entity';
+import { StudentModule } from './student/student.module';
+import { TeacherModule } from './teacher/teacher.module';
+import { LIB_CONSTANT } from './common/constants/lib.constant';
 dotenv.config();
 
+const { TTL } = LIB_CONSTANT;
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -17,13 +22,14 @@ dotenv.config();
       port: parseInt(process.env.DB_PORT as string, 10),
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      entities: [User, TeacherStudent],
+      entities: [User, TeacherStudent, Student, Teacher],
       synchronize: process.env.DB_SYNC === 'true',
       database: process.env.DB_NAME,
     }),
-    UserModule,
     RegistrationModule,
-    CacheModule.register({ isGlobal: true, ttl: 5000 }),
+    StudentModule,
+    TeacherModule,
+    CacheModule.register({ isGlobal: true, ttl: TTL }),
   ],
 })
 export class AppModule {}

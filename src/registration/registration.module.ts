@@ -3,10 +3,15 @@ import { RegistrationService } from './registration.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TeacherStudent } from './teacher-student.entity';
 import { RegistrationController } from './registration.controller';
-import { UserModule } from 'src/user/user.module';
+import { StudentModule } from 'src/student/student.module';
+import { TeacherModule } from 'src/teacher/teacher.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TeacherStudent]), UserModule],
+  imports: [
+    TypeOrmModule.forFeature([TeacherStudent]),
+    StudentModule,
+    TeacherModule,
+  ],
   exports: [TypeOrmModule],
   controllers: [RegistrationController],
   providers: [RegistrationService],
