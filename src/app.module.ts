@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import dotenv from 'dotenv';
-import { User } from './user/user.entity';
 import { RegistrationModule } from './registration/registration.module';
 import { TeacherStudent } from './registration/teacher-student.entity';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -22,7 +21,7 @@ const { TTL } = LIB_CONSTANT;
       port: parseInt(process.env.DB_PORT as string, 10),
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      entities: [User, TeacherStudent, Student, Teacher],
+      entities: [TeacherStudent, Student, Teacher],
       synchronize: process.env.DB_SYNC === 'true',
       database: process.env.DB_NAME,
     }),
