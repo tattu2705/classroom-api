@@ -12,7 +12,6 @@ import { TeacherModule } from 'src/teacher/teacher.module';
     StudentModule,
     TeacherModule,
   ],
-  exports: [TypeOrmModule],
   controllers: [RegistrationController],
   providers: [RegistrationService],
 })
