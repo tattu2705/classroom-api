@@ -6,6 +6,8 @@ export const ERROR_MESSAGES = {
   STUDENT_ALREADY_REGISTERED: (studentEmail: string, teacherEmail: string) =>
     `Student with email ${studentEmail} is already registered under teacher with email ${teacherEmail}`,
 
+  STUDENT_ALREADY_SUSPENDED: (email: string) =>
+    `Student with email ${email} is already suspended`,
   USER_EMAIL_EXISTS: 'User with this email already exists',
 
   TEACHER_GENERIC_NOT_FOUND: 'Teacher not found',

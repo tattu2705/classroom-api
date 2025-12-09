@@ -12,8 +12,10 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
   const config = new DocumentBuilder()
-    .setTitle('NodeJS API')
-    .setDescription('The NodeJS API description')
+    .setTitle('Classroom API')
+    .setDescription(
+      'This repository contains a NestJS API for managing teachers, students, and notifications. The API supports teacher-student registration, retrieving common students, suspending students, and sending notifications.',
+    )
     .setVersion('1.0')
     .build();
   const document = () => SwaggerModule.createDocument(app, config);

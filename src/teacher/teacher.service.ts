@@ -18,7 +18,7 @@ export class TeacherService {
   ) {}
 
   async findAll() {
-    const cacheKey = KeyGenerator.list('teacher:all');
+    const cacheKey = KeyGenerator.generateListKey('teacher:all');
     const cached = await this.cacheManager.get(cacheKey);
 
     if (cached) return cached;
@@ -29,7 +29,7 @@ export class TeacherService {
   }
 
   async findOne(id: number) {
-    const cacheKey = KeyGenerator.teacher(id);
+    const cacheKey = KeyGenerator.generateTeacherKey(id);
     const cached = await this.cacheManager.get(cacheKey);
 
     if (cached) return cached;
@@ -63,7 +63,7 @@ export class TeacherService {
 
     const saved = await this.teacherRepository.save(teacher);
 
-    await this.cacheManager.del(KeyGenerator.list('teacher:all'));
+    await this.cacheManager.del(KeyGenerator.generateListKey('teacher:all'));
 
     return saved;
   }
@@ -75,7 +75,7 @@ export class TeacherService {
       teacher = this.teacherRepository.create({ email });
       teacher = await this.teacherRepository.save(teacher);
 
-      await this.cacheManager.del(KeyGenerator.list('teacher:all'));
+      await this.cacheManager.del(KeyGenerator.generateListKey('teacher:all'));
     }
 
     return teacher;
@@ -84,8 +84,8 @@ export class TeacherService {
   async remove(id: number) {
     await this.teacherRepository.delete(id);
 
-    await this.cacheManager.del(KeyGenerator.teacher(id));
-    await this.cacheManager.del(KeyGenerator.list('teacher:all'));
+    await this.cacheManager.del(KeyGenerator.generateTeacherKey(id));
+    await this.cacheManager.del(KeyGenerator.generateListKey('teacher:all'));
 
     return { deleted: true };
   }

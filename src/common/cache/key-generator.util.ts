@@ -1,27 +1,23 @@
-// src/common/cache/key-generator.util.ts
-
 export class KeyGenerator {
-  static userAll() {
+  static generateUserAllKey() {
     return 'user:all';
   }
 
-  static user(id: number | string) {
-    return `user:${id}`;
-  }
-
-  static teacher(id: number | string) {
+  static generateTeacherKey(id: number | string) {
     return `teacher:${id}`;
   }
 
-  static student(id: number | string) {
+  static generateStudentKey(id: number | string) {
     return `student:${id}`;
   }
 
-  static list(prefix: string, extra?: string | number) {
+  static generateListKey(prefix: string, extra?: string | number) {
     return extra ? `${prefix}:${extra}` : prefix;
   }
 
-  static custom(...parts: (string | number | boolean | undefined)[]) {
+  static generateCustomKey(
+    ...parts: (string | number | boolean | undefined)[]
+  ) {
     return parts.filter(Boolean).join(':');
   }
 }

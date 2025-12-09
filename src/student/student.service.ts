@@ -18,7 +18,7 @@ export class StudentService {
   ) {}
 
   async findAll() {
-    const cacheKey = KeyGenerator.list('student:all');
+    const cacheKey = KeyGenerator.generateListKey('student:all');
     const cached = await this.cacheManager.get(cacheKey);
 
     if (cached) return cached;
@@ -29,7 +29,7 @@ export class StudentService {
   }
 
   async findOne(id: number) {
-    const cacheKey = KeyGenerator.student(id);
+    const cacheKey = KeyGenerator.generateStudentKey(id);
     const cached = await this.cacheManager.get(cacheKey);
 
     if (cached) return cached;
@@ -62,7 +62,7 @@ export class StudentService {
     const student = this.studentRepository.create({ email: dto.email });
     const saved = await this.studentRepository.save(student);
 
-    await this.cacheManager.del(KeyGenerator.list('student:all'));
+    await this.cacheManager.del(KeyGenerator.generateListKey('student:all'));
 
     return saved;
   }
@@ -74,7 +74,7 @@ export class StudentService {
       student = this.studentRepository.create({ email });
       student = await this.studentRepository.save(student);
 
-      await this.cacheManager.del(KeyGenerator.list('student:all'));
+      await this.cacheManager.del(KeyGenerator.generateListKey('student:all'));
     }
 
     return student;
@@ -91,7 +91,7 @@ export class StudentService {
 
     if (student.isSuspended) {
       throw new HttpException(
-        `Student with email ${email} is already suspended`,
+        ERROR_MESSAGES.STUDENT_ALREADY_SUSPENDED(email),
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -100,19 +100,26 @@ export class StudentService {
 
     const saved = await this.studentRepository.save(student);
 
-    await this.cacheManager.del(KeyGenerator.student(student.id));
-    await this.cacheManager.del(KeyGenerator.list('student:all'));
+    await this.cacheManager.del(KeyGenerator.generateStudentKey(student.id));
+    await this.cacheManager.del(KeyGenerator.generateListKey('student:all'));
 
     return saved;
   }
 
   async remove(id: number) {
-    // const student = await this.findOne(id);
+    const student = await this.findOne(id);
+
+    if (!student) {
+      throw new HttpException(
+        ERROR_MESSAGES.STUDENT_GENERIC_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     await this.studentRepository.delete(id);
 
-    await this.cacheManager.del(KeyGenerator.student(id));
-    await this.cacheManager.del(KeyGenerator.list('student:all'));
+    await this.cacheManager.del(KeyGenerator.generateStudentKey(id));
+    await this.cacheManager.del(KeyGenerator.generateListKey('student:all'));
 
     return { deleted: true };
   }

@@ -15,6 +15,7 @@ import { StudentService } from 'src/student/student.service';
 import { TeacherService } from 'src/teacher/teacher.service';
 import { Teacher } from 'src/teacher/teacher.entity';
 import { LIB_CONSTANT } from 'src/common/constants/lib.constant';
+import { SUCCESS_MESSAGES } from 'src/common/constants/success.constant';
 interface CommonStudentRaw {
   email: string;
 }
@@ -70,14 +71,14 @@ export class RegistrationService {
     }
 
     await this.cacheManager.del(
-      KeyGenerator.custom('registrations', teacherEmail),
+      KeyGenerator.generateCustomKey('registrations', teacherEmail),
     );
 
-    return { message: 'Registration successful' };
+    return { message: SUCCESS_MESSAGES.REGISTRATION_SUCCESS };
   }
 
   async getCommonStudentsByTeachers(teacherEmails: string[]) {
-    const cacheKey = KeyGenerator.custom('commonStudents', ...teacherEmails);
+    const cacheKey = KeyGenerator.generateCustomKey('commonStudents', ...teacherEmails);
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return { students: cached };
 
@@ -125,7 +126,7 @@ export class RegistrationService {
     await this.studentService.suspend(studentEmail);
 
     return {
-      message: `Student ${studentEmail} has been suspended`,
+      message: SUCCESS_MESSAGES.SUSPENDED_SUCCESS(studentEmail),
     };
   }
 
@@ -133,7 +134,7 @@ export class RegistrationService {
     teacherEmail: string,
     notification: string,
   ) {
-    const cacheKey = KeyGenerator.custom(
+    const cacheKey = KeyGenerator.generateCustomKey(
       'notificationRecipients',
       teacherEmail,
       notification,
