@@ -99,7 +99,7 @@ export class RegistrationController {
     },
   })
   async retrieveForNotifications(@Body() body: RetrieveForNotificationsDto) {
-    return await this.registrationService.retrieveNotificationRecipients(
+    return await this.registrationService.retrieveNotificationReceipients(
       body.teacher,
       body.notification,
     );

@@ -13,4 +13,7 @@ export const ERROR_MESSAGES = {
   TEACHER_GENERIC_NOT_FOUND: 'Teacher not found',
 
   STUDENT_GENERIC_NOT_FOUND: 'Student not found',
+
+  TOO_MANY_MENTIONS: (max: number) =>
+    `Too many mentioned students in notification. Maximum allowed is ${max}`,
 };

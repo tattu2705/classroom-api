@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Student } from './student.entity';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { KeyGenerator } from 'src/common/cache/key-generator.util';
@@ -67,19 +67,6 @@ export class StudentService {
     return saved;
   }
 
-  async createIfNotExists(email: string) {
-    let student = await this.findByEmail(email);
-
-    if (!student) {
-      student = this.studentRepository.create({ email });
-      student = await this.studentRepository.save(student);
-
-      await this.cacheManager.del(KeyGenerator.generateListKey('student:all'));
-    }
-
-    return student;
-  }
-
   async suspend(email: string) {
     const student = await this.findByEmail(email);
     if (!student) {
@@ -96,9 +83,10 @@ export class StudentService {
       );
     }
 
-    student.isSuspended = true;
-
-    const saved = await this.studentRepository.save(student);
+    const saved = await this.studentRepository.update(
+      { id: student.id },
+      { isSuspended: true },
+    );
 
     await this.cacheManager.del(KeyGenerator.generateStudentKey(student.id));
     await this.cacheManager.del(KeyGenerator.generateListKey('student:all'));
@@ -122,5 +110,21 @@ export class StudentService {
     await this.cacheManager.del(KeyGenerator.generateListKey('student:all'));
 
     return { deleted: true };
+  }
+
+  async findByEmails(emails: string[]) {
+    return this.studentRepository.find({
+      where: {
+        email: In(emails),
+      },
+    });
+  }
+
+  async findManyByEmails(emails: string[]) {
+    if (!emails.length) return [];
+
+    return this.studentRepository.find({
+      where: { email: In(emails) },
+    });
   }
 }
