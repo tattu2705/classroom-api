@@ -2,13 +2,15 @@ import { DataSource } from "typeorm";
 import { Student } from "src/student/student.entity";
 import { Teacher } from "src/teacher/teacher.entity";
 import { TeacherStudent } from "src/registration/teacher-student.entity";
+import dotenv from "dotenv";
+dotenv.config();
 
 const AppDataSource = new DataSource({
   type: "mysql",
   host: process.env.DB_HOST,
   port: 3306,
   username: process.env.DB_USER,
-  password: process.env.DB_PASS,
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   entities: [Student, Teacher, TeacherStudent],
 });
