@@ -9,6 +9,7 @@ import { Teacher } from './teacher/teacher.entity';
 import { StudentModule } from './student/student.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { LIB_CONSTANT } from './common/constants/lib.constant';
+import { AppController } from './app.controller';
 dotenv.config();
 
 const { TTL } = LIB_CONSTANT;
@@ -22,7 +23,7 @@ const { TTL } = LIB_CONSTANT;
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       entities: [TeacherStudent, Student, Teacher],
-      synchronize: process.env.DB_SYNC === 'true',
+      // synchronize: process.env.DB_SYNC === 'true',
       database: process.env.DB_NAME,
     }),
     RegistrationModule,
@@ -30,5 +31,6 @@ const { TTL } = LIB_CONSTANT;
     TeacherModule,
     CacheModule.register({ isGlobal: true, ttl: TTL }),
   ],
+  controllers: [AppController]
 })
 export class AppModule {}

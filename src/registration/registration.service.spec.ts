@@ -1,211 +1,214 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RegistrationService } from './registration.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User } from '../user/user.entity';
 import { TeacherStudent } from './teacher-student.entity';
-import { NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { HttpException, NotFoundException } from '@nestjs/common';
+import { StudentService } from 'src/student/student.service';
+import { TeacherService } from 'src/teacher/teacher.service';
 
 describe('RegistrationService', () => {
   let service: RegistrationService;
-
-  const mockTeacher = { id: 1, email: 't1@mail.com', role: 'teacher' };
-  const mockStudent1 = {
-    id: 2,
-    email: 's1@mail.com',
-    role: 'student',
-    status: 'active',
-  };
-  const mockStudent2 = {
-    id: 3,
-    email: 's2@mail.com',
-    role: 'student',
-    status: 'active',
-  };
-
-  const userRepo = {
-    findOne: jest.fn(),
-    find: jest.fn(),
-    save: jest.fn(),
-  };
-
-  const regRepo = {
-    findOne: jest.fn(),
-    save: jest.fn(),
-    createQueryBuilder: jest.fn(),
-  };
+  let repo: any;
+  let studentService: any;
+  let teacherService: any;
+  let cache: any;
 
   beforeEach(async () => {
+    const mockRepo = {
+      find: jest.fn(),
+      findOne: jest.fn(),
+      insert: jest.fn(),
+      createQueryBuilder: jest.fn(),
+    };
+
+    const mockStudent = {
+      findByEmail: jest.fn(),
+      findByEmails: jest.fn(),
+      findManyByEmails: jest.fn(),
+      suspend: jest.fn(),
+    };
+
+    const mockTeacher = {
+      findByEmail: jest.fn(),
+    };
+
+    const mockCache = {
+      get: jest.fn(),
+      set: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RegistrationService,
-        { provide: getRepositoryToken(User), useValue: userRepo },
-        { provide: getRepositoryToken(TeacherStudent), useValue: regRepo },
+        { provide: getRepositoryToken(TeacherStudent), useValue: mockRepo },
+        { provide: StudentService, useValue: mockStudent },
+        { provide: TeacherService, useValue: mockTeacher },
+        { provide: CACHE_MANAGER, useValue: mockCache },
       ],
     }).compile();
 
     service = module.get<RegistrationService>(RegistrationService);
-
-    jest.clearAllMocks();
+    repo = module.get(getRepositoryToken(TeacherStudent));
+    studentService = module.get(StudentService);
+    teacherService = module.get(TeacherService);
+    cache = module.get(CACHE_MANAGER);
   });
 
-  // ---------------------------------------------------------------------
-  // register()
-  // ---------------------------------------------------------------------
   describe('register', () => {
-    it('should return error if teacher not found', async () => {
-      userRepo.findOne.mockResolvedValueOnce(null);
-
-      const result = await service.register('t1@mail.com', ['s1@mail.com']);
-      expect(result.success).toBe(false);
-    });
-
-    it('should throw NotFoundException if a student not found', async () => {
-      userRepo.findOne
-        .mockResolvedValueOnce(mockTeacher) // teacher
-        .mockResolvedValueOnce(null); // missing student
+    it('throws if teacher not found', async () => {
+      teacherService.findByEmail.mockResolvedValue(null);
 
       await expect(
-        service.register('t1@mail.com', ['s1@mail.com']),
+        service.register('t@a.com', ['s@b.com']),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('throws if some student emails do not exist', async () => {
+      teacherService.findByEmail.mockResolvedValue({ id: 1 });
+      studentService.findByEmails.mockResolvedValue([{ id: 10, email: 'a@a.com' }]);
+
+      await expect(
+        service.register('t@a.com', ['a@a.com', 'b@b.com']),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('throws if student already registered', async () => {
+      teacherService.findByEmail.mockResolvedValue({ id: 1 });
+      studentService.findByEmails.mockResolvedValue([
+        { id: 11, email: 'a@a.com' },
+      ]);
+
+      repo.find.mockResolvedValue([{ studentId: 11 }]);
+
+      await expect(
+        service.register('t@a.com', ['a@a.com']),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('creates new registrations', async () => {
+      teacherService.findByEmail.mockResolvedValue({ id: 1 });
+      studentService.findByEmails.mockResolvedValue([
+        { id: 11, email: 'a@a.com' },
+      ]);
+
+      repo.find.mockResolvedValue([]);
+      repo.insert.mockResolvedValue({});
+
+      const result = await service.register('t@a.com', ['a@a.com']);
+
+      expect(result).toEqual({ message: expect.any(String) });
+      expect(repo.insert).toHaveBeenCalled();
+    });
+  });
+
+  describe('getCommonStudentsByTeachers', () => {
+    it('returns cached data', async () => {
+      cache.get.mockResolvedValue(['a@a.com']);
+
+      const result = await service.getCommonStudentsByTeachers(['t@a.com']);
+
+      expect(result).toEqual({ students: ['a@a.com'] });
+    });
+
+    it('throws when teacher not found', async () => {
+      cache.get.mockResolvedValue(null);
+      teacherService.findByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.getCommonStudentsByTeachers(['t@a.com']),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('returns emails from queryBuilder', async () => {
+      cache.get.mockResolvedValue(null);
+      teacherService.findByEmail.mockResolvedValue({ id: 1 });
+
+      const mockQB = {
+        select: () => mockQB,
+        innerJoin: () => mockQB,
+        where: () => mockQB,
+        groupBy: () => mockQB,
+        having: () => mockQB,
+        getRawMany: jest.fn().mockResolvedValue([{ email: 'x@y.com' }]),
+      };
+
+      repo.createQueryBuilder.mockReturnValue(mockQB);
+
+      const result = await service.getCommonStudentsByTeachers(['t@a.com']);
+
+      expect(result).toEqual({ students: ['x@y.com'] });
+      expect(cache.set).toHaveBeenCalled();
+    });
+  });
+
+  describe('suspendStudent', () => {
+    it('throws if student not found', async () => {
+      studentService.findByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.suspendStudent('a@a.com'),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('suspends student', async () => {
+      studentService.findByEmail.mockResolvedValue({ id: 1 });
+
+      const result = await service.suspendStudent('a@a.com');
+
+      expect(result.message).toContain('has been suspended');
+      expect(studentService.suspend).toHaveBeenCalledWith('a@a.com');
+    });
+  });
+
+  describe('retrieveNotificationReceipients', () => {
+    it('returns cached result', async () => {
+      cache.get.mockResolvedValue({ receipients: ['a@a.com'] });
+
+      const result = await service.retrieveNotificationReceipients(
+        't@a.com',
+        'hello',
+      );
+
+      expect(result).toEqual({ receipients: ['a@a.com'] });
+    });
+
+    it('throws if teacher not found', async () => {
+      cache.get.mockResolvedValue(null);
+      teacherService.findByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.retrieveNotificationReceipients('t@a.com', 'hello'),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should return error if student already registered', async () => {
-      userRepo.findOne
-        .mockResolvedValueOnce(mockTeacher)
-        .mockResolvedValueOnce(mockStudent1);
+    it('returns recipients from registered + mentions', async () => {
+      cache.get.mockResolvedValue(null);
 
-      regRepo.findOne.mockResolvedValueOnce({}); // already exists
+      teacherService.findByEmail.mockResolvedValue({ id: 1 });
 
-      const result = await service.register('t1@mail.com', ['s1@mail.com']);
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('already registered');
-    });
-
-    it('should register students successfully', async () => {
-      userRepo.findOne
-        .mockResolvedValueOnce(mockTeacher)
-        .mockResolvedValueOnce(mockStudent1);
-
-      regRepo.findOne.mockResolvedValueOnce(null);
-      regRepo.save.mockResolvedValueOnce({});
-
-      const result = await service.register('t1@mail.com', ['s1@mail.com']);
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('Registration successful');
-    });
-  });
-
-  // ---------------------------------------------------------------------
-  // getCommonStudentsByTeachers()
-  // ---------------------------------------------------------------------
-  describe('getCommonStudentsByTeachers', () => {
-    it('should return error if teachers not found', async () => {
-      userRepo.find.mockResolvedValueOnce([]);
-
-      const result = await service.getCommonStudentsByTeachers(['t@mail.com']);
-      expect(result.success).toBe(false);
-    });
-
-    it('should return list of common students', async () => {
-      userRepo.find.mockResolvedValueOnce([mockTeacher]);
-
-      const qb: any = {
-        select: jest.fn().mockReturnThis(),
-        innerJoin: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        having: jest.fn().mockReturnThis(),
-        getRawMany: jest
-          .fn()
-          .mockResolvedValue([
-            { email: 's1@mail.com' },
-            { email: 's2@mail.com' },
-          ]),
+      const mockQB = {
+        innerJoinAndSelect: () => mockQB,
+        where: () => mockQB,
+        andWhere: () => mockQB,
+        getMany: jest.fn().mockResolvedValue([
+          { student: { email: 'reg@a.com' } },
+        ]),
       };
-      regRepo.createQueryBuilder.mockReturnValue(qb);
+      repo.createQueryBuilder.mockReturnValue(mockQB);
 
-      const result = await service.getCommonStudentsByTeachers(['t@mail.com']);
-      expect(result.students).toEqual(['s1@mail.com', 's2@mail.com']);
-    });
-  });
+      studentService.findManyByEmails.mockResolvedValue([
+        { email: 'men@b.com', isSuspended: false },
+      ]);
 
-  // ---------------------------------------------------------------------
-  // suspendStudent()
-  // ---------------------------------------------------------------------
-  describe('suspendStudent', () => {
-    it('should return error when student not found', async () => {
-      userRepo.findOne.mockResolvedValueOnce(null);
+      const result = await service.retrieveNotificationReceipients(
+        't@a.com',
+        'hello @men@b.com',
+      ) as { receipients: string[] };
 
-      const result = await service.suspendStudent('s1@mail.com');
-      expect(result.success).toBe(false);
-    });
-
-    it('should suspend student successfully', async () => {
-      userRepo.findOne.mockResolvedValueOnce(mockStudent1);
-      userRepo.save.mockResolvedValueOnce({
-        ...mockStudent1,
-        status: 'suspended',
-      });
-
-      const result = await service.suspendStudent('s1@mail.com');
-      expect(result.success).toBe(true);
-    });
-  });
-
-  // ---------------------------------------------------------------------
-  // retrieveNotificationRecipients()
-  // ---------------------------------------------------------------------
-  describe('retrieveNotificationRecipients', () => {
-    it('should return error if teacher not found', async () => {
-      userRepo.findOne.mockResolvedValueOnce(null);
-
-      const result = await service.retrieveNotificationRecipients(
-        't@mail.com',
-        'msg',
-      );
-      expect(result.message).toContain('not found');
-    });
-
-    it('should return registered active students only', async () => {
-      userRepo.findOne.mockResolvedValueOnce(mockTeacher);
-
-      const qb: any = {
-        innerJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([{ student: mockStudent1 }]),
-      };
-      regRepo.createQueryBuilder.mockReturnValue(qb);
-
-      userRepo.findOne.mockResolvedValueOnce(mockStudent2);
-
-      const result = await service.retrieveNotificationRecipients(
-        't@mail.com',
-        '@s2@mail.com hello',
-      );
-
-      expect(result.receipients).toEqual(['s1@mail.com', 's2@mail.com']);
-    });
-
-    it('should ignore suspended mentioned students', async () => {
-      userRepo.findOne.mockResolvedValueOnce(mockTeacher);
-
-      const qb: any = {
-        innerJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([]),
-      };
-      regRepo.createQueryBuilder.mockReturnValue(qb);
-
-      userRepo.findOne.mockResolvedValueOnce(null); // mentioned student inactive
-
-      const result = await service.retrieveNotificationRecipients(
-        't@mail.com',
-        '@inactive@mail.com',
-      );
-
-      expect(result.receipients).toEqual([]);
+      expect(result.receipients).toContain('reg@a.com');
+      expect(result.receipients).toContain('men@b.com');
+      expect(cache.set).toHaveBeenCalled();
     });
   });
 });

@@ -68,19 +68,6 @@ export class TeacherService {
     return saved;
   }
 
-  async createIfNotExists(email: string) {
-    let teacher = await this.findByEmail(email);
-
-    if (!teacher) {
-      teacher = this.teacherRepository.create({ email });
-      teacher = await this.teacherRepository.save(teacher);
-
-      await this.cacheManager.del(KeyGenerator.generateListKey('teacher:all'));
-    }
-
-    return teacher;
-  }
-
   async remove(id: number) {
     await this.teacherRepository.delete(id);
 

@@ -1,0 +1,12 @@
+version: '1.0'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: classroom-api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${PORT:-3000}:3000"

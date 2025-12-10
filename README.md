@@ -1,18 +1,30 @@
 # NestJS Teacher-Student API
 
-This repository contains a NestJS API for managing teachers, students, and notifications. The API supports teacher-student registration, retrieving common students, suspending students, and sending notifications.
+This repository contains a **NestJS API** for managing teachers, students, registrations, suspensions, and notifications.
 
 ---
 
-## Hosted API
+## 🚀 Hosted API
 
-## Features
+**Swagger UI:**
+
+```
+<your-host>/api
+```
+
+**Postman Collection:**
+
+```
+https://tattunguyen2705-4304537.postman.co/workspace/MyTeam's-Workspace~eb6a3734-7aa4-45a0-8daf-5692a1a13bf6/collection/50700895-62ab517b-26fc-4be8-a020-30b1710238fe?action=share&creator=50700895
+```
+
+---
+
+## ✨ Features
 
 ### 1. Register Students to a Teacher
 
 **POST** `/api/register`
-
-**Request body:**
 
 ```json
 {
@@ -27,8 +39,6 @@ This repository contains a NestJS API for managing teachers, students, and notif
 
 **GET** `/api/commonstudents?teacher=teacherken@gmail.com`
 
-Supports multiple teachers:
-
 ```
 /api/commonstudents?teacher=teacherken@gmail.com&teacher=teacherjoe@gmail.com
 ```
@@ -38,8 +48,6 @@ Supports multiple teachers:
 ### 3. Suspend a Student
 
 **POST** `/api/suspend`
-
-**Request body:**
 
 ```json
 {
@@ -53,8 +61,6 @@ Supports multiple teachers:
 
 **POST** `/api/retrievefornotifications`
 
-**Request body:**
-
 ```json
 {
   "teacher": "teacherken@gmail.com",
@@ -64,15 +70,15 @@ Supports multiple teachers:
 
 ---
 
-### 5. User Management (Optional / Admin)
+### 5. Optional User Management
 
-* **GET** `/api/users` – Retrieve all users
-* **POST** `/api/users` – Create a new user
-* **DELETE** `/api/users/:id` – Delete a user by ID
+* **GET** `/api/users`
+* **POST** `/api/users`
+* **DELETE** `/api/users/:id`
 
 ---
 
-## Project Structure
+## 📦 Project Structure
 
 ```
 src/
@@ -86,24 +92,47 @@ src/
 
 ---
 
-## Technologies Used
+## 🛠 Technologies
 
-* **NestJS**
-* **MySQL + TypeORM**
-* **Node.js (>= 20.x)**
-* **TypeScript**
+* NestJS
+* MySQL + TypeORM
+* Docker + Docker Compose
+* Node.js 20+
+* TypeScript
 
 ---
 
-## Running Locally
+## 🐳 Running with Docker
+
+### 1. Build the image
+
+```bash
+docker build -t classroom-api .
+```
+
+### 2. Run container
+
+```bash
+docker run -p 3000:3000 --env-file .env classroom-api
+```
+
+### 3. Docker Compose
+
+```bash
+docker compose up --build
+```
+
+---
+
+## 💻 Running Locally (Non‑Docker)
 
 ### Prerequisites
 
 * Node.js >= 20.x
 * npm >= 9.x
-* MySQL or another TypeORM-supported database
+* MySQL
 
-### 1. Clone the repository
+### 1. Clone repository
 
 ```bash
 git clone https://github.com/tattu2705/classroom-api.git
@@ -116,9 +145,7 @@ cd classroom-api
 npm install
 ```
 
-### 3. Configure environment variables
-
-Create a `.env` file in the root directory:
+### 3. Create `.env`
 
 ```env
 DB_HOST=localhost
@@ -129,18 +156,38 @@ DB_NAME=your_database_name
 PORT=3000
 ```
 
-### 4. Start the server
+### 4. Start
+
+Development:
 
 ```bash
-# Development (hot reload)
 npm run start:dev
+```
 
-# Production
+Production:
+
+```bash
 npm run start:prod
 ```
 
 ---
 
-## License
+## 📘 API Documentation
+
+Detailed API documentation available at Swagger UI:
+
+```
+<your-host>/api
+```
+
+Postman Collection available here:
+
+```
+https://tattunguyen2705-4304537.postman.co/workspace/MyTeam's-Workspace~eb6a3734-7aa4-45a0-8daf-5692a1a13bf6/collection/50700895-62ab517b-26fc-4be8-a020-30b1710238fe?action=share&creator=50700895
+```
+
+---
+
+## 📄 License
 
 MIT
