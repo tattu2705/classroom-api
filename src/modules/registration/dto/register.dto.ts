@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsArray, IsEmail, ArrayNotEmpty } from 'class-validator';
+import { IsString, IsArray, IsEmail, ArrayNotEmpty, MaxLength } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
   @IsEmail()
+  @MaxLength(50)
   @ApiProperty({
     example: 'teacher1@gmail.com',
     description: 'Email of the teacher',
@@ -14,6 +15,7 @@ export class RegisterDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsEmail({}, { each: true })
+  @MaxLength(50)
   @ApiProperty({
     example: [
       'student1@gmail.com',

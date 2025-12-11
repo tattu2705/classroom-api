@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, MaxLength } from 'class-validator';
 
 export class SuspendDto {
   @ApiProperty({
@@ -7,5 +7,6 @@ export class SuspendDto {
     example: 'student1@gmail.com',
   })
   @IsString()
+  @MaxLength(50)
   student: string;
 }

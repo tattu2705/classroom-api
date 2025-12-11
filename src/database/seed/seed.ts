@@ -1,7 +1,7 @@
 import { DataSource } from "typeorm";
-import { Student } from "src/student/student.entity";
-import { Teacher } from "src/teacher/teacher.entity";
-import { TeacherStudent } from "src/registration/teacher-student.entity";
+import { Student } from "src/modules/student/student.entity";
+import { Teacher } from "src/modules/teacher/teacher.entity";
+import { TeacherStudent } from "src/modules/registration/teacher-student.entity";
 import dotenv from "dotenv";
 dotenv.config();
 

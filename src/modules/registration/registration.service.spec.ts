@@ -4,8 +4,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { TeacherStudent } from './teacher-student.entity';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { HttpException, NotFoundException } from '@nestjs/common';
-import { StudentService } from 'src/student/student.service';
-import { TeacherService } from 'src/teacher/teacher.service';
+import { StudentService } from 'src/modules/student/student.service';
+import { TeacherService } from 'src/modules/teacher/teacher.service';
 
 describe('RegistrationService', () => {
   let service: RegistrationService;

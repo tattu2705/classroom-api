@@ -3,8 +3,8 @@ import { RegistrationService } from './registration.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TeacherStudent } from './teacher-student.entity';
 import { RegistrationController } from './registration.controller';
-import { StudentModule } from 'src/student/student.module';
-import { TeacherModule } from 'src/teacher/teacher.module';
+import { StudentModule } from 'src/modules/student/student.module';
+import { TeacherModule } from 'src/modules/teacher/teacher.module';
 
 @Module({
   imports: [

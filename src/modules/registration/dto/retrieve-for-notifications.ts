@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class RetrieveForNotificationsDto {
   @ApiProperty({
@@ -7,6 +7,7 @@ export class RetrieveForNotificationsDto {
     example: 'teacher1@gmail.com',
   })
   @IsEmail()
+  @MaxLength(50)
   teacher: string;
 
   @ApiProperty({
@@ -14,6 +15,7 @@ export class RetrieveForNotificationsDto {
     example: 'Hello students! @student1@gmail.com @student2@gmail.com',
   })
   @IsString()
+  @MaxLength(250)
   @IsNotEmpty()
   notification: string;
 }

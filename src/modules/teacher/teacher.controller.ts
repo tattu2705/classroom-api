@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   Param,
   Post,
 } from '@nestjs/common';
@@ -19,6 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ERROR_MESSAGES } from 'src/common/constants/error.constant';
+import { Teacher } from './teacher.entity';
 
 @ApiTags('Teacher')
 @Controller()
@@ -26,7 +28,7 @@ export class TeacherController {
   constructor(private readonly teacherService: TeacherService) {}
 
   @Get('/api/teachers')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @ApiResponse({
     description: 'List of all teachers',
     schema: {
@@ -42,12 +44,12 @@ export class TeacherController {
       ],
     },
   })
-  async getTeachers() {
+  async getTeachers(): Promise<Teacher[]> {
     return this.teacherService.findAll();
   }
 
   @Get('/api/teachers/:id')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @ApiParam({
     name: 'id',
     description: 'Teacher ID',
@@ -65,12 +67,12 @@ export class TeacherController {
   @ApiNotFoundResponse({
     description: ERROR_MESSAGES.TEACHER_NOT_FOUND('example@gmail.com'),
   })
-  async getTeacherById(@Param('id') id: number) {
+  async getTeacherById(@Param('id') id: number): Promise<Teacher> {
     return this.teacherService.findOne(id);
   }
 
   @Post('/api/teachers')
-  @HttpCode(201)
+  @HttpCode(HttpStatus.ACCEPTED)
   @ApiBody({
     type: CreateTeacherDto,
     description: 'Create a new teacher',
@@ -91,11 +93,11 @@ export class TeacherController {
       },
     },
   })
-  async createTeacher(@Body() dto: CreateTeacherDto) {
+  async createTeacher(@Body() dto: CreateTeacherDto): Promise<Teacher> {
     return this.teacherService.create(dto);
   }
   @Delete('/api/teachers/:id')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @ApiParam({
     name: 'id',
     description: 'Teacher ID',

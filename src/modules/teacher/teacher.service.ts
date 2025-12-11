@@ -17,9 +17,9 @@ export class TeacherService {
     private readonly cacheManager: Cache,
   ) {}
 
-  async findAll() {
+  async findAll(): Promise<Teacher[]> {
     const cacheKey = KeyGenerator.generateListKey('teacher:all');
-    const cached = await this.cacheManager.get(cacheKey);
+    const cached = await this.cacheManager.get<Teacher[]>(cacheKey);
 
     if (cached) return cached;
 
@@ -28,9 +28,9 @@ export class TeacherService {
     return teachers;
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<Teacher> {
     const cacheKey = KeyGenerator.generateTeacherKey(id);
-    const cached = await this.cacheManager.get(cacheKey);
+    const cached = await this.cacheManager.get<Teacher>(cacheKey);
 
     if (cached) return cached;
 
@@ -46,11 +46,11 @@ export class TeacherService {
     return teacher;
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string): Promise<Teacher | null> {
     return this.teacherRepository.findOne({ where: { email } });
   }
 
-  async create(dto: CreateTeacherDto) {
+  async create(dto: CreateTeacherDto): Promise<Teacher> {
     const exist = await this.findByEmail(dto.email);
     if (exist) {
       throw new HttpException(
@@ -68,7 +68,7 @@ export class TeacherService {
     return saved;
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<{deleted: boolean}> {
     await this.teacherRepository.delete(id);
 
     await this.cacheManager.del(KeyGenerator.generateTeacherKey(id));

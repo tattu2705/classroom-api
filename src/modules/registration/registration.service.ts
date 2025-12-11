@@ -11,24 +11,21 @@
   import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
   import { KeyGenerator } from 'src/common/cache/key-generator.util';
   import { ERROR_MESSAGES } from 'src/common/constants/error.constant';
-  import { StudentService } from 'src/student/student.service';
-  import { TeacherService } from 'src/teacher/teacher.service';
-  import { Teacher } from 'src/teacher/teacher.entity';
+  import { StudentService } from 'src/modules/student/student.service';
+  import { TeacherService } from 'src/modules/teacher/teacher.service';
+  import { Teacher } from 'src/modules/teacher/teacher.entity';
   import { LIB_CONSTANT } from 'src/common/constants/lib.constant';
   import { SUCCESS_MESSAGES } from 'src/common/constants/success.constant';
-  import { Student } from 'src/student/student.entity';
+  import { Student } from 'src/modules/student/student.entity';
   interface CommonStudentRaw {
     email: string;
   }
-
-  const TTL = LIB_CONSTANT.TTL;
-  const MAX_MENTIONS = 50;
 
   @Injectable()
   export class RegistrationService {
     constructor(
       @InjectRepository(TeacherStudent)
-      private registrationRepository: Repository<TeacherStudent>,
+      private studentTeacherRepo: Repository<TeacherStudent>,
 
       private readonly studentService: StudentService,
       private readonly teacherService: TeacherService,
@@ -70,7 +67,7 @@
 
       const studentIds = existingStudents.map((s) => s.id);
 
-      const existingRelations = await this.registrationRepository.find({
+      const existingRelations = await this.studentTeacherRepo.find({
         where: {
           teacherId: teacher.id,
           studentId: In(studentIds),
@@ -99,17 +96,17 @@
         studentId,
       }));
 
-      await this.registrationRepository.insert(relations);
+      await this.studentTeacherRepo.insert(relations);
 
       return { message: SUCCESS_MESSAGES.REGISTRATION_SUCCESS };
     }
 
-    async getCommonStudentsByTeachers(teacherEmails: string[]) {
+    async getCommonStudentsByTeachers(teacherEmails: string[]): Promise<{students: string[]}> {
       const cacheKey = KeyGenerator.generateCustomKey(
         'commonStudents',
         ...teacherEmails,
       );
-      const cached = await this.cacheManager.get(cacheKey);
+      const cached = await this.cacheManager.get<string[]>(cacheKey);
       if (cached) return { students: cached };
 
       const teachers = await Promise.all(
@@ -125,7 +122,7 @@
 
       const teacherIds = teachers.map((t: Teacher) => t.id);
 
-      const result: CommonStudentRaw[] = await this.registrationRepository
+      const result: CommonStudentRaw[] = await this.studentTeacherRepo
         .createQueryBuilder('ts')
         .select('student.email', 'email')
         .innerJoin('ts.student', 'student')
@@ -138,12 +135,12 @@
 
       const emails = result.map((r) => r.email);
 
-      await this.cacheManager.set(cacheKey, emails, TTL);
+      await this.cacheManager.set(cacheKey, emails, LIB_CONSTANT.TEN_SECOND_TTL);
 
       return { students: emails };
     }
 
-    async suspendStudent(studentEmail: string) {
+    async suspendStudent(studentEmail: string): Promise<{message: string}> {
       const student = await this.studentService.findByEmail(studentEmail);
 
       if (!student) {
@@ -163,13 +160,13 @@
     async retrieveNotificationReceipients(
       teacherEmail: string,
       notification: string,
-    ) {
+    ) : Promise<{receipients: string[]}> {
       const cacheKey = KeyGenerator.generateCustomKey(
         'notificationRecipients',
         teacherEmail,
         notification,
       );
-      const cached = await this.cacheManager.get(cacheKey);
+      const cached = await this.cacheManager.get<{receipients: string[]}>(cacheKey);
       if (cached) return cached;
       const teacher = await this.teacherService.findByEmail(teacherEmail);
       if (!teacher) {
@@ -178,7 +175,7 @@
         );
       }
 
-      const registered = await this.registrationRepository
+      const registered = await this.studentTeacherRepo
         .createQueryBuilder('ts')
         .innerJoinAndSelect('ts.student', 'student')
         .where('ts.teacherId = :teacherId', { teacherId: teacher.id })
@@ -187,13 +184,9 @@
 
       const registeredEmails = registered.map((r) => r.student?.email);
 
-      const safeRegex = /@([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,})/g;
+      const safeRegex = LIB_CONSTANT.NOTIFICATION_REGEX
       const mentionMatches = notification.match(safeRegex) || [];
       let mentionEmails = mentionMatches.map((m: string) => m.slice(1));
-
-      if (mentionEmails.length > MAX_MENTIONS) {
-        mentionEmails = mentionEmails.slice(0, MAX_MENTIONS);
-      }
 
       const mentionedStudents =
         await this.studentService.findManyByEmails(mentionEmails);
@@ -206,7 +199,7 @@
         new Set([...registeredEmails, ...mentionValidEmails]),
       );
 
-      await this.cacheManager.set(cacheKey, { receipients }, TTL);
+      await this.cacheManager.set(cacheKey, { receipients }, LIB_CONSTANT.TEN_SECOND_TTL);
 
       return { receipients };
     }

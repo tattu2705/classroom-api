@@ -17,9 +17,9 @@ export class StudentService {
     private readonly cacheManager: Cache,
   ) {}
 
-  async findAll() {
+  async findAll(): Promise<Student[]> {
     const cacheKey = KeyGenerator.generateListKey('student:all');
-    const cached = await this.cacheManager.get(cacheKey);
+    const cached = await this.cacheManager.get<Student[]>(cacheKey);
 
     if (cached) return cached;
 
@@ -28,9 +28,9 @@ export class StudentService {
     return students;
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<Student | null> {
     const cacheKey = KeyGenerator.generateStudentKey(id);
-    const cached = await this.cacheManager.get(cacheKey);
+    const cached = await this.cacheManager.get<Student | null>(cacheKey);
 
     if (cached) return cached;
 
@@ -46,11 +46,11 @@ export class StudentService {
     return student;
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string): Promise<Student | null> {
     return this.studentRepository.findOne({ where: { email } });
   }
 
-  async create(dto: CreateStudentDto) {
+  async create(dto: CreateStudentDto): Promise<Student> {
     const exist = await this.findByEmail(dto.email);
     if (exist) {
       throw new HttpException(
@@ -94,7 +94,7 @@ export class StudentService {
     return saved;
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<{deleted: boolean}> {
     const student = await this.findOne(id);
 
     if (!student) {
@@ -112,7 +112,7 @@ export class StudentService {
     return { deleted: true };
   }
 
-  async findByEmails(emails: string[]) {
+  async findByEmails(emails: string[]): Promise<Student[]> {
     return this.studentRepository.find({
       where: {
         email: In(emails),
@@ -120,7 +120,7 @@ export class StudentService {
     });
   }
 
-  async findManyByEmails(emails: string[]) {
+  async findManyByEmails(emails: string[]): Promise<Student[]> {
     if (!emails.length) return [];
 
     return this.studentRepository.find({

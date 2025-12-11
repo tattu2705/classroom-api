@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
 import { RegistrationService } from './registration.service';
 import { CommonStudentsQueryDto } from './dto/common-students.dto';
 import { SuspendDto } from './dto/suspend.dto';
@@ -12,6 +12,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { SUCCESS_MESSAGES } from 'src/common/constants/success.constant';
+import { RegisterDto } from './dto/register.dto';
 
 @ApiTags('Registration')
 @Controller()
@@ -35,12 +36,12 @@ export class RegistrationController {
   @ApiBadRequestResponse({
     description: 'Invalid input data',
   })
-  async register(@Body() body: { teacher: string; students: string[] }) {
+  async register(@Body() body: RegisterDto) {
     return this.registrationService.register(body.teacher, body.students);
   }
 
   @Get('/api/commonstudents')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @ApiQuery({
     name: 'teacher',
     description:
@@ -64,7 +65,7 @@ export class RegistrationController {
   }
 
   @Post('/api/suspend')
-  @HttpCode(204)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBody({
     description: 'Suspend a student from receiving notifications',
     schema: {
@@ -85,7 +86,7 @@ export class RegistrationController {
   }
 
   @Post('/api/retrievefornotifications')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @ApiBody({
     description: 'Retrieve recipients for a notification.',
     type: RetrieveForNotificationsDto,
