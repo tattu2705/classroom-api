@@ -19,7 +19,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { ERROR_MESSAGES } from 'src/common/constants/error.constant';
+import { ERROR_MESSAGES } from 'src/shared/constants/error.constant';
 import { Teacher } from './teacher.entity';
 
 @ApiTags('Teacher')

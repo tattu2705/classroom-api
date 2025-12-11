@@ -18,6 +18,11 @@ RUN npm install --only=production --omit=dev
 
 COPY --from=build /usr/src/app/dist ./dist
 
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]
+
 EXPOSE ${PORT}
 
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

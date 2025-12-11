@@ -10,12 +10,12 @@
   import { In, Repository } from 'typeorm';
   import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
   import { KeyGenerator } from 'src/common/cache/key-generator.util';
-  import { ERROR_MESSAGES } from 'src/common/constants/error.constant';
+  import { ERROR_MESSAGES } from 'src/shared/constants/error.constant';
   import { StudentService } from 'src/modules/student/student.service';
   import { TeacherService } from 'src/modules/teacher/teacher.service';
   import { Teacher } from 'src/modules/teacher/teacher.entity';
-  import { LIB_CONSTANT } from 'src/common/constants/lib.constant';
-  import { SUCCESS_MESSAGES } from 'src/common/constants/success.constant';
+  import { LIB_CONSTANT } from 'src/shared/constants/lib.constant';
+  import { SUCCESS_MESSAGES } from 'src/shared/constants/success.constant';
   import { Student } from 'src/modules/student/student.entity';
   interface CommonStudentRaw {
     email: string;
@@ -190,7 +190,6 @@
 
       const mentionedStudents =
         await this.studentService.findManyByEmails(mentionEmails);
-      console.log(mentionedStudents, registeredEmails);
       const mentionValidEmails = mentionedStudents
         .filter((s: Student) => !s.isSuspended)
         .map((s: Student) => s?.email);

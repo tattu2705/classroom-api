@@ -11,7 +11,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { SUCCESS_MESSAGES } from 'src/common/constants/success.constant';
+import { SUCCESS_MESSAGES } from 'src/shared/constants/success.constant';
 import { RegisterDto } from './dto/register.dto';
 
 @ApiTags('Registration')

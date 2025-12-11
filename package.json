@@ -18,11 +18,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node -r tsconfig-paths/register src/database/seed/seed.ts",
-    "migration:create": "typeorm-ts-node-commonjs migration:create src/database/migrations/Automigration",
-    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/data-source.ts src/database/migrations/Automigration",
-    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts",
-    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/data-source.ts"
+    "seed": "node dist/database/seed/seed.js",
+    "migration:create": "typeorm-ts-node-commonjs migration:create dist/database/migrations/Automigration",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d dist/config/data-source.js dist/database/migrations/Automigration",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d dist/config/data-source.js",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d dist/config/data-source.js"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.0.1",

@@ -39,7 +39,6 @@ async function seed() {
     { teacherId: teacherB.id, studentId: student3.id },
   ]);
 
-  console.log("🌱 Seed completed");
   process.exit();
 }
 

@@ -5,7 +5,7 @@ import { RegistrationModule } from './modules/registration/registration.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { StudentModule } from './modules/student/student.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
-import { LIB_CONSTANT } from './common/constants/lib.constant';
+import { LIB_CONSTANT } from './shared/constants/lib.constant';
 import { dataSourceOptions } from './config/data-source';
 dotenv.config();
 
@@ -14,9 +14,9 @@ dotenv.config();
     TypeOrmModule.forRoot({
       ...dataSourceOptions,
     }),
-    RegistrationModule,
     StudentModule,
     TeacherModule,
+    RegistrationModule,
     CacheModule.register({ isGlobal: true, ttl: LIB_CONSTANT.TEN_SECOND_TTL }),
   ],
 })

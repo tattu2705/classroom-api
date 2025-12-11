@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post } from
 import { StudentService } from './student.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { ApiBody, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
-import { ERROR_MESSAGES } from 'src/common/constants/error.constant';
+import { ERROR_MESSAGES } from 'src/shared/constants/error.constant';
 import { Student } from './student.entity';
 
 @ApiTags('Student')

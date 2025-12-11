@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Teacher } from './teacher.entity';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { KeyGenerator } from 'src/common/cache/key-generator.util';
-import { ERROR_MESSAGES } from 'src/common/constants/error.constant';
+import { ERROR_MESSAGES } from 'src/shared/constants/error.constant';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 
 @Injectable()
